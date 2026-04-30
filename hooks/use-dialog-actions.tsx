@@ -2,6 +2,7 @@ import { CodePanelDialog } from "@/components/editor/code-panel-dialog";
 import CssImportDialog from "@/components/editor/css-import-dialog";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { ThemeSaveDialog } from "@/components/editor/theme-save-dialog";
+import { ThemeComparatorDialog } from "@/components/editor/theme-comparator-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { useCreateTheme, useUpdateTheme } from "@/hooks/themes";
 import { useAIThemeGenerationCore } from "@/hooks/use-ai-theme-generation-core";
@@ -49,12 +50,14 @@ interface DialogActionsContextType {
   isGeneratingTheme: boolean;
   pendingAction: PendingAction;
   existingThemeName: string | undefined;
+  themeComparatorOpen: boolean;
 
   // Dialog actions
   setCssImportOpen: (open: boolean) => void;
   setCodePanelOpen: (open: boolean) => void;
   setSaveDialogOpen: (open: boolean) => void;
   setShareDialogOpen: (open: boolean) => void;
+  setThemeComparatorOpen: (open: boolean) => void;
 
   // Handler functions
   handleCssImport: (css: string) => void;
@@ -73,6 +76,7 @@ function useDialogActionsStore(): DialogActionsContextType {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [dialogKey, _setDialogKey] = useState(0);
+  const [themeComparatorOpen, setThemeComparatorOpen] = useState(false);
 
   const { themeState, setThemeState, applyThemePreset, hasThemeChangedFromCheckpoint, hasUnsavedChanges } =
     useEditorStore();
@@ -266,12 +270,14 @@ function useDialogActionsStore(): DialogActionsContextType {
     isGeneratingTheme,
     pendingAction,
     existingThemeName,
+    themeComparatorOpen,
 
     // Dialog actions
     setCssImportOpen,
     setCodePanelOpen,
     setSaveDialogOpen,
     setShareDialogOpen,
+    setThemeComparatorOpen,
 
     // Handler functions
     handleCssImport,
@@ -320,6 +326,10 @@ export function DialogActionsProvider({ children }: { children: ReactNode }) {
         open={store.shareDialogOpen}
         onOpenChange={store.setShareDialogOpen}
         url={store.shareUrl}
+      />
+      <ThemeComparatorDialog
+        open={store.themeComparatorOpen}
+        onOpenChange={store.setThemeComparatorOpen}
       />
     </DialogActionsContext>
   );
