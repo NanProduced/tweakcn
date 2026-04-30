@@ -5,7 +5,7 @@ import { HorizontalScrollArea } from "@/components/horizontal-scroll-area";
 import { useDialogActions } from "@/hooks/use-dialog-actions";
 
 export function ActionBar() {
-  const { isCreatingTheme, handleSaveClick, handleShareClick, setCssImportOpen, setCodePanelOpen } =
+  const { isCreatingTheme, handleSaveClick, handleShareClick, setCssImportOpen, setCodePanelOpen, setExportDialogOpen } =
     useDialogActions();
 
   return (
@@ -14,9 +14,10 @@ export function ActionBar() {
         <ActionBarButtons
           onImportClick={() => setCssImportOpen(true)}
           onCodeClick={() => setCodePanelOpen(true)}
+          onExportClick={() => setExportDialogOpen(true)}
           onSaveClick={() => handleSaveClick()}
+          onShareClick={() => handleShareClick(undefined)}
           isSaving={isCreatingTheme}
-          onShareClick={handleShareClick}
         />
       </HorizontalScrollArea>
     </div>
