@@ -100,11 +100,12 @@ const CssImportDialog: React.FC<CssImportDialogProps> = ({ open, onOpenChange, o
     const errors = diagnostics.filter((d) => d.severity === "error");
     const warnings = diagnostics.filter((d) => d.severity === "warning");
     const infos = diagnostics.filter((d) => d.severity === "info");
+    const hasAnyDiagnostics = diagnostics.length > 0;
 
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span className="flex items-center gap-1">
               <CheckCircle className="size-4 text-green-500" />
               <span className="text-green-600">{successCount} parsed</span>
@@ -121,16 +122,22 @@ const CssImportDialog: React.FC<CssImportDialogProps> = ({ open, onOpenChange, o
                 <span className="text-amber-600">{warnings.length} warnings</span>
               </span>
             )}
+            {infos.length > 0 && (
+              <span className="flex items-center gap-1">
+                <Info className="size-4 text-blue-500" />
+                <span className="text-blue-600">{infos.length} info</span>
+              </span>
+            )}
           </div>
         </div>
 
-        {(errors.length > 0 || warnings.length > 0) && (
-          <div className="max-h-40 space-y-2 overflow-y-auto text-xs">
-            {[...errors, ...warnings].slice(0, 10).map((d, i) => (
+        {hasAnyDiagnostics && (
+          <div className="max-h-56 space-y-2 overflow-y-auto text-xs">
+            {[...errors, ...warnings, ...infos].slice(0, 15).map((d, i) => (
               <div key={i} className="flex items-start gap-2 rounded border bg-card/50 p-2">
                 {getSeverityIcon(d.severity)}
                 <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={`font-medium ${d.severity === "error" ? "text-destructive" : d.severity === "warning" ? "text-amber-600" : "text-blue-600"}`}>
                       {getSeverityLabel(d.severity)}
                     </span>
@@ -146,9 +153,9 @@ const CssImportDialog: React.FC<CssImportDialogProps> = ({ open, onOpenChange, o
                 </div>
               </div>
             ))}
-            {[...errors, ...warnings].length > 10 && (
+            {[...errors, ...warnings, ...infos].length > 15 && (
               <p className="text-center text-muted-foreground">
-                ... and {[...errors, ...warnings].length - 10} more
+                ... and {[...errors, ...warnings, ...infos].length - 15} more
               </p>
             )}
           </div>

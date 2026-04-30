@@ -149,7 +149,7 @@ describe("parseCssInput", () => {
 
       const result = parseCssInput(css);
 
-      expect(result.lightColors["should-not-parse"]).toBeUndefined();
+      expect(Object.keys(result.lightColors)).not.toContain("should-not-parse");
       expect(result.lightColors.background).toBeDefined();
     });
   });
