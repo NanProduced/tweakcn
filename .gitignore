@@ -28,6 +28,10 @@ bun.lock
 *.pem
 .cursor
 
+.claude/
+.gemini/
+.playwright-mcp/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

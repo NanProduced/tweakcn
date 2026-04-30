@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/db";
-import { theme as themeTable, communityTheme } from "@/db/schema";
+import { user as userTable, theme as themeTable, communityTheme } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import cuid from "cuid";
 import { auth } from "@/lib/auth";
@@ -23,6 +23,27 @@ import { getMyActiveSubscription } from "@/lib/subscription";
 
 // Helper to get user ID with better error handling
 async function getCurrentUserId(): Promise<string> {
+  // Local development mock
+  if (process.env.NODE_ENV === "development") {
+    const mockId = "local-dev-user-id";
+    
+    // Ensure mock user exists in DB to prevent foreign key errors
+    const [existingUser] = await db.select().from(userTable).where(eq(userTable.id, mockId)).limit(1);
+    
+    if (!existingUser) {
+      await db.insert(userTable).values({
+        id: mockId,
+        name: "Local Dev User",
+        email: "dev@local.test",
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+    
+    return mockId;
+  }
+
   const session = await auth.api.getSession({
     headers: await headers(),
   });
