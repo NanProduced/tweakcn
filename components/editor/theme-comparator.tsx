@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { useEditorStore } from "@/store/editor-store";
 import { useThemePresetStore } from "@/store/theme-preset-store";
 import { ThemeStyles, ThemeStyleProps } from "@/types/theme";
+import { defaultThemeState } from "@/config/theme";
 import { getBuiltInThemeStyles } from "@/utils/theme-preset-helper";
 import {
   TokenType,
@@ -451,6 +452,9 @@ const ThemeComparator: React.FC<ThemeComparatorProps> = ({ onClose }) => {
       if (themeName === "current") {
         return themeState.styles;
       }
+      if (themeName === "default") {
+        return defaultThemeState.styles;
+      }
       const builtIn = getBuiltInThemeStyles(themeName);
       if (builtIn) {
         return builtIn.styles;
@@ -459,17 +463,17 @@ const ThemeComparator: React.FC<ThemeComparatorProps> = ({ onClose }) => {
       if (preset) {
         return {
           light: {
-            ...themeState.styles.light,
+            ...defaultThemeState.styles.light,
             ...(preset.styles.light || {}),
           },
           dark: {
-            ...themeState.styles.dark,
+            ...defaultThemeState.styles.dark,
             ...(preset.styles.light || {}),
             ...(preset.styles.dark || {}),
           },
         };
       }
-      return themeState.styles;
+      return defaultThemeState.styles;
     },
     [themeState.styles, presets]
   );
