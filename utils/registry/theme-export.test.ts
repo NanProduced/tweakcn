@@ -141,25 +141,28 @@ describe("theme-export", () => {
   });
 
   describe("generateTailwindConfig", () => {
-    it("should generate valid Tailwind config with hsl format", () => {
+    it("should generate valid TypeScript Tailwind config with hsl format", () => {
       const result = generateTailwindConfig(testThemeStyles, {
         colorFormat: "hsl",
       });
 
       expect(result).toBeDefined();
-      expect(result).toContain("@type {import('tailwindcss').Config}");
+      expect(result).toContain('import type { Config } from "tailwindcss"');
+      expect(result).toContain("const config: Config = {");
       expect(result).toContain("darkMode: [\"class\"]");
-      expect(result).toContain("module.exports");
+      expect(result).toContain("export default config");
       expect(result).toContain("colors");
       expect(result).toContain('"hsl(var(--border))"');
     });
 
-    it("should generate valid Tailwind config with oklch format", () => {
+    it("should generate valid TypeScript Tailwind config with oklch format", () => {
       const result = generateTailwindConfig(testThemeStyles, {
         colorFormat: "oklch",
       });
 
       expect(result).toBeDefined();
+      expect(result).toContain('import type { Config } from "tailwindcss"');
+      expect(result).toContain("export default config");
       expect(result).toContain('"var(--border)"');
       expect(result).toContain("colors");
       expect(result).toContain("borderRadius");
