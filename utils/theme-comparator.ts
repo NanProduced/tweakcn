@@ -120,15 +120,15 @@ export function compareThemes(
   const allTokens = getAllThemeTokens();
 
   for (const token of allTokens) {
-    if (isCommonToken(token)) {
-      const baseValue = baseTheme.light[token as keyof ThemeStyleProps] || "";
-      const targetValue = targetTheme.light[token as keyof ThemeStyleProps] || "";
+    for (const mode of ["light", "dark"] as const) {
+      const baseValue = baseTheme[mode][token as keyof ThemeStyleProps] || "";
+      const targetValue = targetTheme[mode][token as keyof ThemeStyleProps] || "";
       const isSame = isDeepEqual(baseValue, targetValue);
 
       const diff: TokenDifference = {
         token,
         type: getTokenType(token),
-        mode: "common",
+        mode,
         baseValue: String(baseValue),
         targetValue: String(targetValue),
         isSame,
@@ -139,34 +139,13 @@ export function compareThemes(
       } else {
         differences.push(diff);
       }
-    } else {
-      for (const mode of ["light", "dark"] as const) {
-        const baseValue = baseTheme[mode][token as keyof ThemeStyleProps] || "";
-        const targetValue = targetTheme[mode][token as keyof ThemeStyleProps] || "";
-        const isSame = isDeepEqual(baseValue, targetValue);
-
-        const diff: TokenDifference = {
-          token,
-          type: getTokenType(token),
-          mode,
-          baseValue: String(baseValue),
-          targetValue: String(targetValue),
-          isSame,
-        };
-
-        if (isSame) {
-          sameTokens.push(diff);
-        } else {
-          differences.push(diff);
-        }
-      }
     }
   }
 
   return {
     differences,
     sameTokens,
-    totalTokens: allTokens.length * 2 - COMMON_TOKENS.length,
+    totalTokens: allTokens.length * 2,
     differentCount: differences.length,
     sameCount: sameTokens.length,
   };
@@ -176,23 +155,37 @@ export function createPatchOperations(
   selectedDifferences: TokenDifference[]
 ): PatchOperation[] {
   const operations: PatchOperation[] = [];
+  const processedTokens = new Set<string>();
 
   for (const diff of selectedDifferences) {
-    if (diff.mode === "common") {
+    if (isCommonToken(diff.token)) {
+      if (processedTokens.has(diff.token)) continue;
+      processedTokens.add(diff.token);
+
+      const otherMode = diff.mode === "light" ? "dark" : "light";
+      const otherDiff = selectedDifferences.find(
+        (d) => d.token === diff.token && d.mode === otherMode
+      );
+
       operations.push({
         token: diff.token,
         mode: "light",
-        value: diff.targetValue,
+        value: diff.mode === "light" ? diff.targetValue : (otherDiff?.targetValue || diff.targetValue),
       });
       operations.push({
         token: diff.token,
         mode: "dark",
-        value: diff.targetValue,
+        value: diff.mode === "dark" ? diff.targetValue : (otherDiff?.targetValue || diff.targetValue),
       });
     } else {
+      const mode = diff.mode as "light" | "dark";
+      const key = `${diff.token}-${mode}`;
+      if (processedTokens.has(key)) continue;
+      processedTokens.add(key);
+
       operations.push({
         token: diff.token,
-        mode: diff.mode,
+        mode,
         value: diff.targetValue,
       });
     }
