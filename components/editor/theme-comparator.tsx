@@ -435,10 +435,12 @@ const ThemeComparator: React.FC<ThemeComparatorProps> = ({ onClose }) => {
     ];
 
     Object.entries(presets).forEach(([key, preset]) => {
-      options.push({
-        value: key,
-        label: preset.label || key,
-      });
+      if (preset.source !== "SAVED") {
+        options.push({
+          value: key,
+          label: preset.label || key,
+        });
+      }
     });
 
     return options;
@@ -453,9 +455,23 @@ const ThemeComparator: React.FC<ThemeComparatorProps> = ({ onClose }) => {
       if (builtIn) {
         return builtIn.styles;
       }
+      const preset = presets[themeName];
+      if (preset) {
+        return {
+          light: {
+            ...themeState.styles.light,
+            ...(preset.styles.light || {}),
+          },
+          dark: {
+            ...themeState.styles.dark,
+            ...(preset.styles.light || {}),
+            ...(preset.styles.dark || {}),
+          },
+        };
+      }
       return themeState.styles;
     },
-    [themeState.styles]
+    [themeState.styles, presets]
   );
 
   const comparison: TokenDiffResult | null = useMemo(() => {
