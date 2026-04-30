@@ -425,9 +425,11 @@ No blocks here
     it("should handle malformed CSS gracefully", () => {
       const css = `
 :root {
-  --background: 0 0% 100%
-  missing semicolon
-  --foreground: 222.2 84% 4.9%;
+  --background: #ffffff;
+  --invalid: this is not a valid declaration;
+  --foreground: #111111;
+  some random text that is not valid CSS;
+  --primary: #ff0000;
 }
       `;
 
@@ -451,6 +453,82 @@ No blocks here
       const result = parseCssInput(css);
 
       expect(result.lightColors.radius).toBe("0.625rem");
+    });
+
+    it("should map --color-* variables to standard token names", () => {
+      const css = `
+:root {
+  --color-background: #ffffff;
+  --color-foreground: #111111;
+  --color-primary: #ff0000;
+  --color-secondary: #00ff00;
+  --color-muted: #cccccc;
+  --color-accent: #0000ff;
+  --color-destructive: #ff4444;
+  --color-border: #dddddd;
+  --color-input: #eeeeee;
+  --color-ring: #aaaaaa;
+}
+      `;
+
+      const result = parseCssInput(css);
+
+      expect(result.lightColors.background).toBe("#ffffff");
+      expect(result.lightColors.foreground).toBe("#111111");
+      expect(result.lightColors.primary).toBe("#ff0000");
+      expect(result.lightColors.secondary).toBe("#00ff00");
+      expect(result.lightColors.muted).toBe("#cccccc");
+      expect(result.lightColors.accent).toBe("#0000ff");
+      expect(result.lightColors.destructive).toBe("#ff4444");
+      expect(result.lightColors.border).toBe("#dddddd");
+      expect(result.lightColors.input).toBe("#eeeeee");
+      expect(result.lightColors.ring).toBe("#aaaaaa");
+    });
+
+    it("should map Tailwind v4 sidebar variables", () => {
+      const css = `
+:root {
+  --color-sidebar: #f8f8f8;
+  --color-sidebar-foreground: #111111;
+  --color-sidebar-primary: #ff0000;
+  --color-sidebar-primary-foreground: #ffffff;
+  --color-sidebar-accent: #00ff00;
+  --color-sidebar-accent-foreground: #000000;
+  --color-sidebar-border: #dddddd;
+  --color-sidebar-ring: #aaaaaa;
+}
+      `;
+
+      const result = parseCssInput(css);
+
+      expect(result.lightColors.sidebar).toBe("#f8f8f8");
+      expect(result.lightColors["sidebar-foreground"]).toBe("#111111");
+      expect(result.lightColors["sidebar-primary"]).toBe("#ff0000");
+      expect(result.lightColors["sidebar-primary-foreground"]).toBe("#ffffff");
+      expect(result.lightColors["sidebar-accent"]).toBe("#00ff00");
+      expect(result.lightColors["sidebar-accent-foreground"]).toBe("#000000");
+      expect(result.lightColors["sidebar-border"]).toBe("#dddddd");
+      expect(result.lightColors["sidebar-ring"]).toBe("#aaaaaa");
+    });
+
+    it("should map Tailwind v4 chart variables", () => {
+      const css = `
+:root {
+  --color-chart-1: #ff0000;
+  --color-chart-2: #00ff00;
+  --color-chart-3: #0000ff;
+  --color-chart-4: #ffff00;
+  --color-chart-5: #ff00ff;
+}
+      `;
+
+      const result = parseCssInput(css);
+
+      expect(result.lightColors["chart-1"]).toBe("#ff0000");
+      expect(result.lightColors["chart-2"]).toBe("#00ff00");
+      expect(result.lightColors["chart-3"]).toBe("#0000ff");
+      expect(result.lightColors["chart-4"]).toBe("#ffff00");
+      expect(result.lightColors["chart-5"]).toBe("#ff00ff");
     });
   });
 
@@ -595,6 +673,52 @@ No blocks here
 
       const warnings = result.diagnostics.filter((d) => d.severity === "warning");
       expect(warnings.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it("should NOT include invalid color values in the result", () => {
+      const css = `
+:root {
+  --background: #ffffff;
+  --foreground: definitely-not-a-color;
+  --primary: also-bad;
+  --secondary: #00ff00;
+}
+      `;
+
+      const result = parseCssInput(css);
+
+      expect(result.lightColors.background).toBe("#ffffff");
+      expect(result.lightColors.secondary).toBe("#00ff00");
+
+      expect(result.lightColors.foreground).toBeUndefined();
+      expect(result.lightColors.primary).toBeUndefined();
+
+      const warnings = result.diagnostics.filter((d) => d.severity === "warning");
+      expect(warnings.length).toBe(2);
+      expect(warnings[0].variableName).toBe("foreground");
+      expect(warnings[1].variableName).toBe("primary");
+    });
+
+    it("should NOT include invalid Tailwind v4 color values in the result", () => {
+      const css = `
+:root {
+  --color-background: #ffffff;
+  --color-foreground: invalid-color;
+  --color-primary: also-invalid;
+  --color-secondary: #00ff00;
+}
+      `;
+
+      const result = parseCssInput(css);
+
+      expect(result.lightColors.background).toBe("#ffffff");
+      expect(result.lightColors.secondary).toBe("#00ff00");
+
+      expect(result.lightColors.foreground).toBeUndefined();
+      expect(result.lightColors.primary).toBeUndefined();
+
+      const warnings = result.diagnostics.filter((d) => d.severity === "warning");
+      expect(warnings.length).toBe(2);
     });
 
     it("should not crash on completely invalid CSS", () => {
