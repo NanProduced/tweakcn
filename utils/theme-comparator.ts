@@ -155,40 +155,19 @@ export function createPatchOperations(
   selectedDifferences: TokenDifference[]
 ): PatchOperation[] {
   const operations: PatchOperation[] = [];
-  const processedTokens = new Set<string>();
+  const processed = new Set<string>();
 
   for (const diff of selectedDifferences) {
-    if (isCommonToken(diff.token)) {
-      if (processedTokens.has(diff.token)) continue;
-      processedTokens.add(diff.token);
+    const mode = diff.mode as "light" | "dark";
+    const key = `${diff.token}-${mode}`;
+    if (processed.has(key)) continue;
+    processed.add(key);
 
-      const otherMode = diff.mode === "light" ? "dark" : "light";
-      const otherDiff = selectedDifferences.find(
-        (d) => d.token === diff.token && d.mode === otherMode
-      );
-
-      operations.push({
-        token: diff.token,
-        mode: "light",
-        value: diff.mode === "light" ? diff.targetValue : (otherDiff?.targetValue || diff.targetValue),
-      });
-      operations.push({
-        token: diff.token,
-        mode: "dark",
-        value: diff.mode === "dark" ? diff.targetValue : (otherDiff?.targetValue || diff.targetValue),
-      });
-    } else {
-      const mode = diff.mode as "light" | "dark";
-      const key = `${diff.token}-${mode}`;
-      if (processedTokens.has(key)) continue;
-      processedTokens.add(key);
-
-      operations.push({
-        token: diff.token,
-        mode,
-        value: diff.targetValue,
-      });
-    }
+    operations.push({
+      token: diff.token,
+      mode,
+      value: diff.targetValue,
+    });
   }
 
   return operations;
