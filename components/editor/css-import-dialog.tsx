@@ -69,7 +69,11 @@ const CssImportDialog: React.FC<CssImportDialogProps> = ({ open, onOpenChange, o
       const result = onImport(cssText);
       setImportResult(result);
 
-      if (result.success) {
+      const hasWarningsOrErrors = result.diagnostics.some(
+        (d) => d.severity === "warning" || d.severity === "error"
+      );
+
+      if (result.success && !hasWarningsOrErrors) {
         setCssText("");
         setError(null);
         setTimeout(() => {

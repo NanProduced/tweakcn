@@ -6,6 +6,14 @@ import * as culori from "culori";
 export const variableNames = Object.keys(defaultThemeState.styles.light);
 const nonColorVariables = COMMON_STYLES;
 const VARIABLE_PREFIX = "--";
+const TAILWIND_V4_COLOR_PREFIX = "color-";
+
+function mapTailwindV4VariableName(name: string): string {
+  if (name.startsWith(TAILWIND_V4_COLOR_PREFIX)) {
+    return name.slice(TAILWIND_V4_COLOR_PREFIX.length);
+  }
+  return name;
+}
 
 export interface ParseDiagnostic {
   severity: "error" | "warning" | "info";
@@ -369,10 +377,12 @@ function parseColorVariables(
 
     const { name, value } = result;
 
-    if (!validNames.includes(name)) {
+    let mappedName = mapTailwindV4VariableName(name);
+
+    if (!validNames.includes(mappedName)) {
       diagnostics.push({
         severity: "info",
-        message: `Unknown variable "${name}", skipping`,
+        message: `Unknown variable "${name}"${mappedName !== name ? ` (mapped to "${mappedName}")` : ""}, skipping`,
         line: lineOffset + 1,
         variableName: name,
         rawValue: value,
@@ -380,13 +390,15 @@ function parseColorVariables(
       continue;
     }
 
-    const processed = processValueForToken(name, value, lineOffset);
+    const processed = processValueForToken(mappedName, value, lineOffset);
 
     if (processed.diagnostic) {
       diagnostics.push(processed.diagnostic);
     }
 
-    target[name as keyof ThemeStyleProps] = processed.processed;
+    if (processed.success) {
+      target[mappedName as keyof ThemeStyleProps] = processed.processed;
+    }
   }
 
   return diagnostics;
