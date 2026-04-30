@@ -4,6 +4,7 @@ import { useEditorStore } from "@/store/editor-store";
 import { useThemePresetStore } from "@/store/theme-preset-store";
 import { useThemesData } from "@/hooks/themes";
 import { CodeButton } from "./code-button";
+import { ExportButton } from "./export-button";
 import { ImportButton } from "./import-button";
 import { MoreOptions } from "./more-options";
 import { PublishButton } from "./publish-button";
@@ -17,6 +18,7 @@ import { useMemo } from "react";
 interface ActionBarButtonsProps {
   onImportClick: () => void;
   onCodeClick: () => void;
+  onExportClick: () => void;
   onSaveClick: () => void;
   onShareClick: (id?: string) => void;
   isSaving: boolean;
@@ -25,6 +27,7 @@ interface ActionBarButtonsProps {
 export function ActionBarButtons({
   onImportClick,
   onCodeClick,
+  onExportClick,
   onSaveClick,
   onShareClick,
   isSaving,
@@ -69,6 +72,7 @@ export function ActionBarButtons({
       ) : (
         <SaveButton onClick={onSaveClick} isSaving={isSaving} disabled={isGeneratingTheme} />
       )}
+      <ExportButton onClick={onExportClick} disabled={isGeneratingTheme} />
       <CodeButton onClick={onCodeClick} disabled={isGeneratingTheme} />
     </div>
   );

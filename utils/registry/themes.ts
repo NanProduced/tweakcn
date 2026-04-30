@@ -12,17 +12,15 @@ const convertToRegistryColor = (color: string): string => {
   return colorFormatter(color, "oklch");
 };
 
-// Helper to get a value from either dark or light theme
-const getThemeValue = (
+export function getThemeValue(
   dark: ThemeStyleProps,
   light: ThemeStyleProps,
   key: keyof ThemeStyleProps
-): string => {
+): string {
   return dark[key] || light[key] || "";
-};
+}
 
-// Convert theme styles to registry format
-const convertThemeStyles = (styles: ThemeStyles) => {
+export function convertThemeStyles(styles: ThemeStyles) {
   const { light, dark } = styles;
 
   const convertTheme = (theme: ThemeStyleProps): ThemeStyleProps => {
@@ -30,7 +28,6 @@ const convertThemeStyles = (styles: ThemeStyles) => {
     const convertColor = (color?: string) =>
       convertToRegistryColor(color || "");
 
-    // Convert all color values
     result.background = convertColor(theme.background);
     result.foreground = convertColor(theme.foreground);
     result.card = convertColor(theme.card);
@@ -79,9 +76,52 @@ const convertThemeStyles = (styles: ThemeStyles) => {
     light: { ...defaultLightThemeStyles, ...convertTheme(light) },
     dark: { ...defaultDarkThemeStyles, ...convertTheme(dark) },
   };
-};
+}
 
 // This method will do the same as "generateThemeRegistry" from `scripts/generate-theme-registry.ts`
+export function getShadowMapForExport(
+  themeStyles: { light: ThemeStyleProps; dark: ThemeStyleProps },
+  mode: "light" | "dark"
+): Record<string, string> {
+  const styles = {
+    ...defaultLightThemeStyles,
+    ...themeStyles[mode],
+  };
+
+  const shadowColor = styles["shadow-color"];
+  const hsl = colorFormatter(shadowColor, "hsl", "3");
+  const offsetX = styles["shadow-offset-x"];
+  const offsetY = styles["shadow-offset-y"];
+  const blur = styles["shadow-blur"];
+  const spread = styles["shadow-spread"];
+  const opacity = parseFloat(styles["shadow-opacity"]);
+  const color = (opacityMultiplier: number) =>
+    `hsl(${hsl} / ${(opacity * opacityMultiplier).toFixed(2)})`;
+
+  const secondLayer = (fixedOffsetY: string, fixedBlur: string): string => {
+    const offsetX2 = offsetX;
+    const offsetY2 = fixedOffsetY;
+    const blur2 = fixedBlur;
+    const spread2 = (parseFloat(spread?.replace("px", "") ?? "0") - 1).toString() + "px";
+    const color2 = color(1.0);
+
+    return `${offsetX2} ${offsetY2} ${blur2} ${spread2} ${color2}`;
+  };
+
+  const shadowMap: { [key: string]: string } = {
+    "shadow-2xs": `${offsetX} ${offsetY} ${blur} ${spread} ${color(0.5)}`,
+    "shadow-xs": `${offsetX} ${offsetY} ${blur} ${spread} ${color(0.5)}`,
+    "shadow-2xl": `${offsetX} ${offsetY} ${blur} ${spread} ${color(2.5)}`,
+    "shadow-sm": `${offsetX} ${offsetY} ${blur} ${spread} ${color(1.0)}, ${secondLayer("1px", "2px")}`,
+    shadow: `${offsetX} ${offsetY} ${blur} ${spread} ${color(1.0)}, ${secondLayer("1px", "2px")}`,
+    "shadow-md": `${offsetX} ${offsetY} ${blur} ${spread} ${color(1.0)}, ${secondLayer("2px", "4px")}`,
+    "shadow-lg": `${offsetX} ${offsetY} ${blur} ${spread} ${color(1.0)}, ${secondLayer("4px", "6px")}`,
+    "shadow-xl": `${offsetX} ${offsetY} ${blur} ${spread} ${color(1.0)}, ${secondLayer("8px", "10px")}`,
+  };
+
+  return shadowMap;
+}
+
 export const generateThemeRegistryFromPreset = (name: string) => {
   const styles = getPresetThemeStyles(name);
   const registryItem = generateThemeRegistryItemFromStyles(name, styles);

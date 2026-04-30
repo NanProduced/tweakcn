@@ -2,6 +2,7 @@ import { CodePanelDialog } from "@/components/editor/code-panel-dialog";
 import CssImportDialog from "@/components/editor/css-import-dialog";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { ThemeSaveDialog } from "@/components/editor/theme-save-dialog";
+import { ThemeExportDialog } from "@/components/editor/theme-export-dialog";
 import { toast } from "@/components/ui/use-toast";
 import { useCreateTheme, useUpdateTheme } from "@/hooks/themes";
 import { useAIThemeGenerationCore } from "@/hooks/use-ai-theme-generation-core";
@@ -40,6 +41,7 @@ interface DialogActionsContextType {
   // Dialog states
   cssImportOpen: boolean;
   codePanelOpen: boolean;
+  exportDialogOpen: boolean;
   saveDialogOpen: boolean;
   shareDialogOpen: boolean;
   shareUrl: string;
@@ -53,6 +55,7 @@ interface DialogActionsContextType {
   // Dialog actions
   setCssImportOpen: (open: boolean) => void;
   setCodePanelOpen: (open: boolean) => void;
+  setExportDialogOpen: (open: boolean) => void;
   setSaveDialogOpen: (open: boolean) => void;
   setShareDialogOpen: (open: boolean) => void;
 
@@ -68,6 +71,7 @@ interface DialogActionsContextType {
 function useDialogActionsStore(): DialogActionsContextType {
   const [cssImportOpen, setCssImportOpen] = useState(false);
   const [codePanelOpen, setCodePanelOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -257,6 +261,7 @@ function useDialogActionsStore(): DialogActionsContextType {
     // Dialog states
     cssImportOpen,
     codePanelOpen,
+    exportDialogOpen,
     saveDialogOpen,
     shareDialogOpen,
     shareUrl,
@@ -270,6 +275,7 @@ function useDialogActionsStore(): DialogActionsContextType {
     // Dialog actions
     setCssImportOpen,
     setCodePanelOpen,
+    setExportDialogOpen,
     setSaveDialogOpen,
     setShareDialogOpen,
 
@@ -290,6 +296,7 @@ export const DialogActionsContext = createContext<DialogActionsContextType | nul
 export function DialogActionsProvider({ children }: { children: ReactNode }) {
   const { themeState } = useEditorStore();
   const store = useDialogActionsStore();
+  const themeName = themeState.preset ? `theme-${themeState.preset}` : "my-theme";
 
   return (
     <DialogActionsContext value={store}>
@@ -305,6 +312,12 @@ export function DialogActionsProvider({ children }: { children: ReactNode }) {
         open={store.codePanelOpen}
         onOpenChange={store.setCodePanelOpen}
         themeEditorState={themeState}
+      />
+      <ThemeExportDialog
+        open={store.exportDialogOpen}
+        onOpenChange={store.setExportDialogOpen}
+        themeStyles={themeState.styles}
+        themeName={themeName}
       />
       <ThemeSaveDialog
         open={store.saveDialogOpen}
