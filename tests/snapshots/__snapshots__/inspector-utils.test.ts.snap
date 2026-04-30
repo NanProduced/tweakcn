@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Inspector Utils: segmentClassName > snapshot: Class with multiple dashes 1`] = `
+{
+  "opacity": null,
+  "prefix": "border",
+  "selector": null,
+  "value": "r-2",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: Complex: selector + opacity 1`] = `
+{
+  "opacity": "20",
+  "prefix": "bg",
+  "selector": "hover",
+  "value": "black",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: Simple class 1`] = `
+{
+  "opacity": null,
+  "prefix": "bg",
+  "selector": null,
+  "value": "red-500",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: Single word class 1`] = `
+{
+  "opacity": null,
+  "prefix": "flex",
+  "selector": null,
+  "value": null,
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: Tailwind v4 arbitrary value 1`] = `
+{
+  "opacity": null,
+  "prefix": "bg",
+  "selector": null,
+  "value": "[#ff0000]",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: With data attribute selector 1`] = `
+{
+  "opacity": null,
+  "prefix": "bg",
+  "selector": "data-[state=open]",
+  "value": "white",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: With focus-visible selector 1`] = `
+{
+  "opacity": null,
+  "prefix": "ring",
+  "selector": "focus-visible",
+  "value": "2",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: With hover selector 1`] = `
+{
+  "opacity": null,
+  "prefix": "bg",
+  "selector": "hover",
+  "value": "blue-500",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: With nested selectors 1`] = `
+{
+  "opacity": null,
+  "prefix": "opacity",
+  "selector": "group-hover",
+  "value": "100",
+}
+`;
+
+exports[`Inspector Utils: segmentClassName > snapshot: With opacity modifier 1`] = `
+{
+  "opacity": "50",
+  "prefix": "bg",
+  "selector": null,
+  "value": "black",
+}
+`;

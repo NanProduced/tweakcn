@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Color Converter > snapshot: CSS named color 1`] = `"218.5401 79.1908% 66.0784%"`;
+
+exports[`Color Converter > snapshot: HEX to HEX - Blue 1`] = `"#3b82f6"`;
+
+exports[`Color Converter > snapshot: HEX to HSL - Blue 1`] = `"217.2193 91.2195% 59.8039%"`;
+
+exports[`Color Converter > snapshot: HEX to OKLCH - Blue 1`] = `"oklch(0.6231 0.1880 259.8145)"`;
+
+exports[`Color Converter > snapshot: HEX to RGB - Blue 1`] = `"rgb(59, 130, 246)"`;
+
+exports[`Color Converter > snapshot: HEX with alpha 1`] = `"0 100% 50%"`;
+
+exports[`Color Converter > snapshot: HSL to HSL - Red 1`] = `"0 84% 60%"`;
+
+exports[`Color Converter > snapshot: HSL to OKLCH - Red 1`] = `"oklch(0.6356 0.2082 25.3782)"`;
+
+exports[`Color Converter > snapshot: HSL to RGB - Red 1`] = `"rgb(239, 67, 67)"`;
+
+exports[`Color Converter > snapshot: OKLCH to HSL - Purple 1`] = `"267.8744 95.7751% 63.2625%"`;
+
+exports[`Color Converter > snapshot: OKLCH to OKLCH - Purple 1`] = `"oklch(0.6000 0.2500 300)"`;
+
+exports[`Color Converter > snapshot: RGB to HSL - Green 1`] = `"142.0859 70.5628% 45.2941%"`;
+
+exports[`Color Converter > snapshot: RGB to RGB - Green 1`] = `"rgb(34, 197, 94)"`;
