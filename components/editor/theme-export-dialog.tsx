@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveDialog,
@@ -50,7 +50,8 @@ export function ThemeExportDialog({
 }: ThemeExportDialogProps) {
   const [activeFormat, setActiveFormat] = useState<ExportFormat>("css-variables");
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [activeSubTab, setActiveSubTab] = useState("main");
   const { toast } = useToast();
 
   const colorFormat = usePreferencesStore((state) => state.colorFormat);
@@ -59,23 +60,35 @@ export function ThemeExportDialog({
   const setTailwindVersion = usePreferencesStore((state) => state.setTailwindVersion);
   const getAvailableColorFormats = usePreferencesStore((state) => state.getAvailableColorFormats);
 
-  const [activeSubTab, setActiveSubTab] = useState("main");
-
-  const exportResult = useMemo<ExportResult | null>(() => {
+  const exportResultData = useMemo(() => {
     try {
-      setError(null);
-      return generateExport(activeFormat, themeStyles, {
-        themeName,
-        colorFormat,
-        tailwindVersion,
-      });
+      return {
+        success: true,
+        result: generateExport(activeFormat, themeStyles, {
+          themeName,
+          colorFormat,
+          tailwindVersion,
+        }),
+        error: null,
+      } as const;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to generate export";
-      setError(errorMessage);
-      console.error("Export generation error:", err);
-      return null;
+      return {
+        success: false,
+        result: null,
+        error: errorMessage,
+      } as const;
     }
   }, [activeFormat, themeStyles, themeName, colorFormat, tailwindVersion]);
+
+  useEffect(() => {
+    if (!exportResultData.success) {
+      setExportError(exportResultData.error);
+      console.error("Export generation error:", exportResultData.error);
+    } else {
+      setExportError(null);
+    }
+  }, [exportResultData.success, exportResultData.error]);
 
   const layoutCode = useMemo(() => {
     try {
@@ -98,7 +111,7 @@ export function ThemeExportDialog({
         setTimeout(() => setCopied(false), 2000);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to copy";
-        setError(errorMessage);
+        setExportError(errorMessage);
         toast({
           title: "Copy failed",
           description: errorMessage,
@@ -128,7 +141,7 @@ export function ThemeExportDialog({
         });
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to download";
-        setError(errorMessage);
+        setExportError(errorMessage);
         toast({
           title: "Download failed",
           description: errorMessage,
@@ -138,6 +151,8 @@ export function ThemeExportDialog({
     },
     [toast]
   );
+
+  const exportResult = exportResultData.success ? exportResultData.result : null;
 
   const displayContent = activeSubTab === "layout" && activeFormat === "css-variables" 
     ? layoutCode 
@@ -162,15 +177,15 @@ export function ThemeExportDialog({
             </ResponsiveDialogDescription>
           </ResponsiveDialogHeader>
 
-          {error && (
+          {exportError && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
               <AlertCircle className="size-4" />
-              <span>{error}</span>
+              <span>{exportError}</span>
               <Button
                 variant="ghost"
                 size="sm"
                 className="ml-auto h-6"
-                onClick={() => setError(null)}
+                onClick={() => setExportError(null)}
               >
                 Dismiss
               </Button>
@@ -215,19 +230,20 @@ export function ThemeExportDialog({
               setActiveFormat(v as ExportFormat);
               setActiveSubTab("main");
             }} className="w-full">
-              <TabsList className="w-full h-auto flex-wrap bg-transparent p-0 gap-1">
+              <TabsList className="w-full h-auto flex-nowrap overflow-x-auto bg-transparent p-0 gap-1 pb-1">
                 {EXPORT_FORMATS.map((format) => (
                   <TabsTrigger
                     key={format.value}
                     value={format.value}
                     className={cn(
-                      "h-auto px-4 py-2 text-sm font-medium",
-                      "data-[state=active]:bg-background data-[state=active]:shadow-sm",
-                      "rounded-md"
+                      "h-auto px-4 py-2 text-sm font-medium flex-none",
+                      "data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border",
+                      "border border-transparent rounded-md",
+                      "hover:bg-muted/50 transition-colors cursor-pointer"
                     )}
                   >
-                    <div className="flex flex-col items-start">
-                      <span>{format.label}</span>
+                    <div className="flex flex-col items-start min-w-max">
+                      <span className="font-medium">{format.label}</span>
                       <span className="text-xs text-muted-foreground font-normal">
                         {format.description}
                       </span>

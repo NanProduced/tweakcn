@@ -366,8 +366,9 @@ export function generateTailwindConfig(
     return colorFormat === "hsl" ? `"hsl(var(--${key}))"` : `"var(--${key})"`;
   };
 
-  return `/** @type {import('tailwindcss').Config} */
-module.exports = {
+  return `import type { Config } from "tailwindcss";
+
+const config: Config = {
   darkMode: ["class"],
   theme: {
     extend: {
@@ -436,7 +437,9 @@ module.exports = {
       },
     },
   },
-}`;
+};
+
+export default config;`;
 }
 
 export function generateExport(
