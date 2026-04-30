@@ -32,6 +32,17 @@ export interface ParseResult {
   failureCount: number;
 }
 
+interface CssBlock {
+  selector: string;
+  content: string;
+  startLine: number;
+}
+
+interface DeclarationWithLine {
+  declaration: string;
+  startLine: number;
+}
+
 const CSS_SELECTORS = {
   ROOT: [":root"],
   DARK: [".dark", ":root.dark"],
@@ -99,8 +110,8 @@ function stripComments(input: string): { stripped: string; diagnostics: ParseDia
   return { stripped: result, diagnostics };
 }
 
-function findAllBlocks(input: string): Array<{ selector: string; content: string; startLine: number }> {
-  const blocks: Array<{ selector: string; content: string; startLine: number }> = [];
+function findAllBlocks(input: string): CssBlock[] {
+  const blocks: CssBlock[] = [];
   const strippedComments = stripComments(input);
   const css = strippedComments.stripped;
 
@@ -116,7 +127,6 @@ function findAllBlocks(input: string): Array<{ selector: string; content: string
     if (i >= css.length) break;
 
     const selectorStart = i;
-    let braceCount = 0;
     let inSelector = true;
     let selector = "";
 
@@ -127,7 +137,7 @@ function findAllBlocks(input: string): Array<{ selector: string; content: string
         if (char === "{") {
           selector = css.slice(selectorStart, i).trim();
           inSelector = false;
-          braceCount = 1;
+          let braceCount = 1;
           i++;
           const contentStart = i;
           const blockStartLine = line;
@@ -181,11 +191,11 @@ function matchesDarkSelector(selector: string): boolean {
   return darkPatterns.some((pattern) => pattern.test(selector));
 }
 
-function extractBlockContentForMode(
-  blocks: Array<{ selector: string; content: string; startLine: number }>,
+function extractBlocksForMode(
+  blocks: CssBlock[],
   mode: "light" | "dark"
-): string {
-  const contents: string[] = [];
+): CssBlock[] {
+  const result: CssBlock[] = [];
 
   for (const block of blocks) {
     const isDarkSelector = matchesDarkSelector(block.selector);
@@ -195,21 +205,87 @@ function extractBlockContentForMode(
       for (const nested of nestedBlocks) {
         const nestedIsDark = matchesDarkSelector(nested.selector);
         if (mode === "light" && !nestedIsDark) {
-          contents.push(nested.content);
+          result.push({
+            ...nested,
+            startLine: block.startLine + nested.startLine - 1,
+          });
         } else if (mode === "dark" && nestedIsDark) {
-          contents.push(nested.content);
+          result.push({
+            ...nested,
+            startLine: block.startLine + nested.startLine - 1,
+          });
         }
       }
     } else if (mode === "light" && !isDarkSelector) {
       if (CSS_SELECTORS.ROOT.some((s) => block.selector.includes(s))) {
-        contents.push(block.content);
+        result.push(block);
       }
     } else if (mode === "dark" && isDarkSelector) {
-      contents.push(block.content);
+      result.push(block);
     }
   }
 
-  return contents.join(";\n");
+  return result;
+}
+
+function splitDeclarationsWithLines(content: string, blockStartLine: number): DeclarationWithLine[] {
+  const declarations: DeclarationWithLine[] = [];
+  let current = "";
+  let depth = 0;
+  let inString = false;
+  let stringChar = "";
+  let declarationStartLine = 1;
+  let line = 1;
+
+  for (let i = 0; i < content.length; i++) {
+    const char = content[i];
+
+    if (char === "\n") {
+      line++;
+    }
+
+    if (!inString && (char === '"' || char === "'")) {
+      inString = true;
+      stringChar = char;
+      current += char;
+      continue;
+    }
+
+    if (inString && char === stringChar && content[i - 1] !== "\\") {
+      inString = false;
+      current += char;
+      continue;
+    }
+
+    if (!inString) {
+      if (char === "(" || char === "[" || char === "{") {
+        depth++;
+      } else if (char === ")" || char === "]" || char === "}") {
+        depth--;
+      } else if (char === ";" && depth === 0) {
+        if (current.trim()) {
+          declarations.push({
+            declaration: current.trim(),
+            startLine: blockStartLine + declarationStartLine - 1,
+          });
+        }
+        current = "";
+        declarationStartLine = line;
+        continue;
+      }
+    }
+
+    current += char;
+  }
+
+  if (current.trim()) {
+    declarations.push({
+      declaration: current.trim(),
+      startLine: blockStartLine + declarationStartLine - 1,
+    });
+  }
+
+  return declarations;
 }
 
 function parseVariableDeclaration(
@@ -231,7 +307,7 @@ function parseVariableDeclaration(
       diagnostic: {
         severity: "info",
         message: "Skipping non-variable declaration",
-        line: lineOffset + 1,
+        line: lineOffset,
         rawValue: trimmed,
       },
     };
@@ -246,7 +322,7 @@ function parseVariableDeclaration(
       diagnostic: {
         severity: "error",
         message: "Invalid variable declaration format: missing colon after variable name",
-        line: lineOffset + 1,
+        line: lineOffset,
         rawValue: trimmed,
       },
     };
@@ -299,7 +375,7 @@ function parseVariableDeclaration(
       diagnostic: {
         severity: "warning",
         message: `Variable "${name}" has empty value`,
-        line: lineOffset + 1,
+        line: lineOffset,
         variableName: name,
       },
     };
@@ -341,7 +417,7 @@ function processValueForToken(
       diagnostic: {
         severity: "warning",
         message: `Failed to parse color value for "${name}": invalid color format`,
-        line: lineOffset + 1,
+        line: lineOffset,
         variableName: name,
         rawValue: value,
       },
@@ -355,100 +431,55 @@ function processValueForToken(
   };
 }
 
-function parseColorVariables(
-  cssContent: string,
+function parseColorVariablesFromBlocks(
+  blocks: CssBlock[],
   target: ThemeStyleProps,
-  validNames: string[],
-  lineOffset: number = 0
+  validNames: string[]
 ): ParseDiagnostic[] {
   const diagnostics: ParseDiagnostic[] = [];
-  const declarations = splitDeclarations(cssContent);
 
-  for (const declaration of declarations) {
-    const result = parseVariableDeclaration(declaration, lineOffset);
+  for (const block of blocks) {
+    const declarationsWithLines = splitDeclarationsWithLines(block.content, block.startLine);
 
-    if (result.diagnostic) {
-      diagnostics.push(result.diagnostic);
-    }
+    for (const { declaration, startLine } of declarationsWithLines) {
+      const result = parseVariableDeclaration(declaration, startLine);
 
-    if (!result.success) {
-      continue;
-    }
+      if (result.diagnostic) {
+        diagnostics.push(result.diagnostic);
+      }
 
-    const { name, value } = result;
+      if (!result.success) {
+        continue;
+      }
 
-    let mappedName = mapTailwindV4VariableName(name);
+      const { name, value } = result;
 
-    if (!validNames.includes(mappedName)) {
-      diagnostics.push({
-        severity: "info",
-        message: `Unknown variable "${name}"${mappedName !== name ? ` (mapped to "${mappedName}")` : ""}, skipping`,
-        line: lineOffset + 1,
-        variableName: name,
-        rawValue: value,
-      });
-      continue;
-    }
+      let mappedName = mapTailwindV4VariableName(name);
 
-    const processed = processValueForToken(mappedName, value, lineOffset);
+      if (!validNames.includes(mappedName)) {
+        diagnostics.push({
+          severity: "info",
+          message: `Unknown variable "${name}"${mappedName !== name ? ` (mapped to "${mappedName}")` : ""}, skipping`,
+          line: startLine,
+          variableName: name,
+          rawValue: value,
+        });
+        continue;
+      }
 
-    if (processed.diagnostic) {
-      diagnostics.push(processed.diagnostic);
-    }
+      const processed = processValueForToken(mappedName, value, startLine);
 
-    if (processed.success) {
-      target[mappedName as keyof ThemeStyleProps] = processed.processed;
+      if (processed.diagnostic) {
+        diagnostics.push(processed.diagnostic);
+      }
+
+      if (processed.success) {
+        target[mappedName as keyof ThemeStyleProps] = processed.processed;
+      }
     }
   }
 
   return diagnostics;
-}
-
-function splitDeclarations(content: string): string[] {
-  const declarations: string[] = [];
-  let current = "";
-  let depth = 0;
-  let inString = false;
-  let stringChar = "";
-
-  for (let i = 0; i < content.length; i++) {
-    const char = content[i];
-
-    if (!inString && (char === '"' || char === "'")) {
-      inString = true;
-      stringChar = char;
-      current += char;
-      continue;
-    }
-
-    if (inString && char === stringChar && content[i - 1] !== "\\") {
-      inString = false;
-      current += char;
-      continue;
-    }
-
-    if (!inString) {
-      if (char === "(" || char === "[" || char === "{") {
-        depth++;
-      } else if (char === ")" || char === "]" || char === "}") {
-        depth--;
-      } else if (char === ";" && depth === 0) {
-        if (current.trim()) {
-          declarations.push(current.trim());
-        }
-        current = "";
-        continue;
-      }
-    }
-
-    current += char;
-  }
-
-  if (current.trim()) {
-    declarations.push(current.trim());
-  }
-
-  return declarations;
 }
 
 export const parseCssInput = (input: string): ParseResult => {
@@ -469,16 +500,16 @@ export const parseCssInput = (input: string): ParseResult => {
       });
     }
 
-    const lightContent = extractBlockContentForMode(blocks, "light");
-    const darkContent = extractBlockContentForMode(blocks, "dark");
+    const lightBlocks = extractBlocksForMode(blocks, "light");
+    const darkBlocks = extractBlocksForMode(blocks, "dark");
 
-    if (lightContent) {
-      const lightDiagnostics = parseColorVariables(lightContent, lightColors, variableNames);
+    if (lightBlocks.length > 0) {
+      const lightDiagnostics = parseColorVariablesFromBlocks(lightBlocks, lightColors, variableNames);
       diagnostics.push(...lightDiagnostics);
     }
 
-    if (darkContent) {
-      const darkDiagnostics = parseColorVariables(darkContent, darkColors, variableNames);
+    if (darkBlocks.length > 0) {
+      const darkDiagnostics = parseColorVariablesFromBlocks(darkBlocks, darkColors, variableNames);
       diagnostics.push(...darkDiagnostics);
     }
   } catch (error) {
