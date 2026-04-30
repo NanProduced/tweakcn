@@ -10,7 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { useAuthStore } from "@/store/auth-store";
 import { useEditorStore } from "@/store/editor-store";
 import { useThemePresetStore } from "@/store/theme-preset-store";
-import { parseCssInput } from "@/utils/parse-css-input";
+import { parseCssInput, type ParseDiagnostic, type ParseResult } from "@/utils/parse-css-input";
 import { usePostHog } from "posthog-js/react";
 import { createContext, ReactNode, useContext, useState } from "react";
 
@@ -57,7 +57,7 @@ interface DialogActionsContextType {
   setShareDialogOpen: (open: boolean) => void;
 
   // Handler functions
-  handleCssImport: (css: string) => void;
+  handleCssImport: (css: string) => { success: boolean; diagnostics: ParseDiagnostic[]; successCount: number; failureCount: number };
   handleSaveClick: (options?: { shareAfterSave?: boolean; openInV0AfterSave?: boolean }) => void;
   handleShareClick: (id?: string) => Promise<void>;
   handleOpenInV0: (id?: string, name?: string) => void;
@@ -102,23 +102,58 @@ function useDialogActionsStore(): DialogActionsContextType {
     setPendingAction("v0");
   });
 
-  const handleCssImport = (css: string) => {
-    const { lightColors, darkColors } = parseCssInput(css);
-    const styles = {
-      ...themeState.styles,
-      light: { ...themeState.styles.light, ...lightColors },
-      dark: { ...themeState.styles.dark, ...darkColors },
+  const handleCssImport = (css: string): { success: boolean; diagnostics: ParseDiagnostic[]; successCount: number; failureCount: number } => {
+    const result = parseCssInput(css);
+    const { lightColors, darkColors, diagnostics, successCount, failureCount } = result;
+
+    const hasValidColors = Object.keys(lightColors).length > 0 || Object.keys(darkColors).length > 0;
+
+    if (hasValidColors) {
+      const styles = {
+        ...themeState.styles,
+        light: { ...themeState.styles.light, ...lightColors },
+        dark: { ...themeState.styles.dark, ...darkColors },
+      };
+
+      setThemeState({
+        ...themeState,
+        styles,
+      });
+
+      const warnings = diagnostics.filter((d) => d.severity === "warning");
+      const errors = diagnostics.filter((d) => d.severity === "error");
+
+      if (errors.length > 0) {
+        toast({
+          title: "CSS imported with errors",
+          description: `Imported ${successCount} variable(s) but encountered ${errors.length} error(s). Check the diagnostics for details.`,
+          variant: "destructive",
+        });
+      } else if (warnings.length > 0) {
+        toast({
+          title: "CSS imported with warnings",
+          description: `Imported ${successCount} variable(s) with ${warnings.length} warning(s).`,
+        });
+      } else {
+        toast({
+          title: "CSS imported",
+          description: `Successfully imported ${successCount} variable(s).`,
+        });
+      }
+    } else {
+      toast({
+        title: "No valid CSS variables found",
+        description: "Could not parse any valid theme variables from the provided CSS.",
+        variant: "destructive",
+      });
+    }
+
+    return {
+      success: hasValidColors,
+      diagnostics,
+      successCount,
+      failureCount,
     };
-
-    setThemeState({
-      ...themeState,
-      styles,
-    });
-
-    toast({
-      title: "CSS imported",
-      description: "Your custom CSS has been imported successfully",
-    });
   };
 
   const handleSaveClick = (options?: { shareAfterSave?: boolean; openInV0AfterSave?: boolean }) => {
