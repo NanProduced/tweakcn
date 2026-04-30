@@ -7,8 +7,7 @@ import {
 import { colorFormatter } from "@/utils/color-converter";
 import { extractFontFamily } from "@/utils/fonts";
 import {
-  getThemeValue,
-  convertThemeStyles,
+  generateThemeRegistryItemFromStyles,
   getShadowMapForExport,
 } from "@/utils/registry/themes";
 import {
@@ -280,69 +279,7 @@ export function generateShadcnRegistryItem(
   themeName: string,
   themeStyles: ThemeStyles
 ): string {
-  const { light, dark } = convertThemeStyles(themeStyles);
-
-  const lightShadows = getShadowMapForExport(
-    { light, dark, currentMode: "light" },
-    "light"
-  );
-  const darkShadows = getShadowMapForExport(
-    { light, dark, currentMode: "dark" },
-    "dark"
-  );
-
-  const registryItem = {
-    $schema: "https://ui.shadcn.com/schema/registry-item.json",
-    name: themeName,
-    type: "registry:style",
-    css: {
-      "@layer base": {
-        body: {
-          "letter-spacing": "var(--tracking-normal)",
-        },
-      },
-    },
-    cssVars: {
-      theme: {
-        "font-sans":
-          getThemeValue(dark, light, "font-sans") || "Inter, sans-serif",
-        "font-mono": getThemeValue(dark, light, "font-mono") || "monospace",
-        "font-serif": getThemeValue(dark, light, "font-serif") || "serif",
-        radius: getThemeValue(dark, light, "radius") || "0.5rem",
-        "tracking-tighter": "calc(var(--tracking-normal) - 0.05em)",
-        "tracking-tight": "calc(var(--tracking-normal) - 0.025em)",
-        "tracking-wide": "calc(var(--tracking-normal) + 0.025em)",
-        "tracking-wider": "calc(var(--tracking-normal) + 0.05em)",
-        "tracking-widest": "calc(var(--tracking-normal) + 0.1em)",
-      },
-      light: {
-        ...light,
-        "shadow-2xs": lightShadows["shadow-2xs"],
-        "shadow-xs": lightShadows["shadow-xs"],
-        "shadow-sm": lightShadows["shadow-sm"],
-        shadow: lightShadows["shadow"],
-        "shadow-md": lightShadows["shadow-md"],
-        "shadow-lg": lightShadows["shadow-lg"],
-        "shadow-xl": lightShadows["shadow-xl"],
-        "shadow-2xl": lightShadows["shadow-2xl"],
-        "tracking-normal":
-          getThemeValue(dark, light, "letter-spacing") || "0em",
-        spacing: getThemeValue(dark, light, "spacing") || "0.25rem",
-      },
-      dark: {
-        ...dark,
-        "shadow-2xs": darkShadows["shadow-2xs"],
-        "shadow-xs": darkShadows["shadow-xs"],
-        "shadow-sm": darkShadows["shadow-sm"],
-        shadow: darkShadows["shadow"],
-        "shadow-md": darkShadows["shadow-md"],
-        "shadow-lg": darkShadows["shadow-lg"],
-        "shadow-xl": darkShadows["shadow-xl"],
-        "shadow-2xl": darkShadows["shadow-2xl"],
-      },
-    },
-  };
-
+  const registryItem = generateThemeRegistryItemFromStyles(themeName, themeStyles);
   return JSON.stringify(registryItem, null, 2);
 }
 
